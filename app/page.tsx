@@ -1,71 +1,58 @@
-'use client';
-
-import { Header } from '@/components/layout/Header';
-import { Sidebar } from '@/components/layout/Sidebar';
 import { PostFeed } from '@/components/feed/PostFeed';
-import { useAuthStore } from '@/store/authStore';
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuthStore();
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
-      {isAuthenticated ? <Sidebar /> : <Header />}
-
-      <main className={isAuthenticated ? 'lg:ml-64 min-h-screen pb-20 lg:pb-0' : ''}>
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {/* Hero Section */}
-          <section className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              AI Destekli Bitki Sağlığı Platformu
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Bitkilerinizin Sağlığı
-              <span className="text-green-600"> AgroKlinik</span>&apos;te
-            </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Yapay zeka ile bitki hastalıklarını teşhis edin, topluluktan destek alın 
-              ve tarımsal verimliliğinizi artırın.
-            </p>
-          </section>
-
-          {/* Feature Cards */}
-          <section className="grid md:grid-cols-3 gap-6 mb-12">
-            <FeatureCard
-              icon="🔬"
-              title="AI Teşhis"
-              description="Fotoğraf yükleyin, saniyeler içinde hastalık teşhisi alın"
-            />
-            <FeatureCard
-              icon="👥"
-              title="Topluluk"
-              description="Deneyimli çiftçiler ve uzmanlardan destek alın"
-            />
-            <FeatureCard
-              icon="📊"
-              title="Takip"
-              description="Tedavi süreçlerinizi izleyin ve analiz edin"
-            />
-          </section>
-
-          {/* Public Feed */}
-          <section>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Genel Paylaşımlar
-              </h2>
-              <select className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent">
-                <option>En Yeni</option>
-                <option>En Popüler</option>
-                <option>Çözülenler</option>
-              </select>
-            </div>
-            
-            <PostFeed />
-          </section>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Hero Section */}
+      <section className="text-center mb-12">
+        <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          AI Destekli Bitki Sağlığı Platformu
         </div>
-      </main>
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          Bitkilerinizin Sağlığı
+          <span className="text-green-600"> AgroKlinik</span>&apos;te
+        </h1>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          Yapay zeka ile bitki hastalıklarını teşhis edin, topluluktan destek alın 
+          ve tarımsal verimliliğinizi artırın.
+        </p>
+      </section>
+
+      {/* Feature Cards */}
+      <section className="grid md:grid-cols-3 gap-6 mb-12">
+        <FeatureCard
+          icon="🔬"
+          title="AI Teşhis"
+          description="Fotoğraf yükleyin, saniyeler içinde hastalık teşhisi alın"
+        />
+        <FeatureCard
+          icon="👥"
+          title="Topluluk"
+          description="Deneyimli çiftçiler ve uzmanlardan destek alın"
+        />
+        <FeatureCard
+          icon="📊"
+          title="Takip"
+          description="Tedavi süreçlerinizi izleyin ve analiz edin"
+        />
+      </section>
+
+      {/* Public Feed */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Genel Paylaşımlar
+          </h2>
+          <select className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent">
+            <option>En Yeni</option>
+            <option>En Popüler</option>
+            <option>Çözülenler</option>
+          </select>
+        </div>
+
+        <PostFeed />
+      </section>
     </div>
   );
 }

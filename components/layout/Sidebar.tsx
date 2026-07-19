@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 
 const menuItems = [
-  { href: '/', icon: '🏠', label: 'Ana Sayfa' },
+  { href: '/', icon: '🏠', label: 'Ana Sayfa', public: true },
   { href: '/sorun-ekle', icon: '🔬', label: 'Sorun Ekle' },
   { href: '/gecmis', icon: '📊', label: 'Geçmiş Veriler' },
   { href: '/paylasim', icon: '🌐', label: 'Paylaşım Alanı' },
@@ -15,8 +15,17 @@ const menuItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuthStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Giriş yapmamış kullanıcı için: genel sayfalar hariç tıklanan linkler giriş sayfasına yönlendirir
+  const handleNavClick = (e: React.MouseEvent, isPublic?: boolean) => {
+    if (!isAuthenticated && !isPublic) {
+      e.preventDefault();
+      router.push('/giris');
+    }
+  };
 
   return (
     <>
@@ -38,19 +47,33 @@ export function Sidebar() {
 
         {/* User Card */}
         <div className="p-4 border-b border-green-100">
-          <Link href="/hesabim" className={`flex items-center gap-3 p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
-            <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-xl flex-shrink-0">
-              {user?.avatar}
-            </div>
-            {!isCollapsed && (
-              <div className="overflow-hidden">
-                <p className="font-semibold text-gray-900 truncate">
-                  {user?.firstName} {user?.lastName}
-                </p>
-                <p className="text-sm text-gray-500 truncate">{user?.profession}</p>
+          {isAuthenticated ? (
+            <Link href="/hesabim" className={`flex items-center gap-3 p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
+              <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-xl flex-shrink-0">
+                {user?.avatar}
               </div>
-            )}
-          </Link>
+              {!isCollapsed && (
+                <div className="overflow-hidden">
+                  <p className="font-semibold text-gray-900 truncate">
+                    {user?.firstName} {user?.lastName}
+                  </p>
+                  <p className="text-sm text-gray-500 truncate">{user?.profession}</p>
+                </div>
+              )}
+            </Link>
+          ) : (
+            <Link href="/giris" className={`flex items-center gap-3 p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
+              <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-xl flex-shrink-0">
+                👤
+              </div>
+              {!isCollapsed && (
+                <div className="overflow-hidden">
+                  <p className="font-semibold text-gray-900 truncate">Giriş Yap</p>
+                  <p className="text-sm text-gray-500 truncate">Hesabınıza erişin</p>
+                </div>
+              )}
+            </Link>
+          )}
         </div>
 
         {/* Navigation */}
@@ -61,6 +84,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={(e) => handleNavClick(e, item.public)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                   isActive
                     ? 'bg-green-100 text-green-700'
@@ -85,13 +109,23 @@ export function Sidebar() {
             <span className="text-xl">{isCollapsed ? '→' : '←'}</span>
             {!isCollapsed && <span className="font-medium">Daralt</span>}
           </button>
-          <button
-            onClick={logout}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 w-full transition-colors ${isCollapsed ? 'justify-center' : ''}`}
-          >
-            <span className="text-xl">🚪</span>
-            {!isCollapsed && <span className="font-medium">Çıkış Yap</span>}
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={logout}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 w-full transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+            >
+              <span className="text-xl">🚪</span>
+              {!isCollapsed && <span className="font-medium">Çıkış Yap</span>}
+            </button>
+          ) : (
+            <Link
+              href="/giris"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-green-600 hover:bg-green-50 w-full transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+            >
+              <span className="text-xl">🔑</span>
+              {!isCollapsed && <span className="font-medium">Giriş Yap</span>}
+            </Link>
+          )}
         </div>
       </aside>
 
@@ -104,6 +138,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={(e) => handleNavClick(e, item.public)}
                 className={`flex flex-col items-center py-2 px-3 rounded-lg ${
                   isActive ? 'text-green-600' : 'text-gray-500'
                 }`}
