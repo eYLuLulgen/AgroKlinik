@@ -17,7 +17,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthStore();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Giriş yapmamış kullanıcı için: genel sayfalar hariç tıklanan linkler giriş sayfasına yönlendirir
   const handleNavClick = (e: React.MouseEvent, isPublic?: boolean) => {
@@ -29,16 +29,22 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className={`hidden lg:flex flex-col fixed left-0 top-0 h-screen bg-white border-r border-green-100 transition-all duration-300 z-40 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+      {/* Desktop Sidebar - sağda sabit, üzerine gelince yana kayarak genişler */}
+      <aside
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+        className={`hidden lg:flex flex-col fixed right-0 top-0 h-screen bg-white border-l border-green-100 transition-all duration-300 z-40 ${
+          isExpanded ? 'w-64' : 'w-20'
+        }`}
+      >
         {/* Logo */}
         <div className="p-4 border-b border-green-100">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xl">🌱</span>
             </div>
-            {!isCollapsed && (
-              <span className="text-xl font-bold text-gray-900">
+            {isExpanded && (
+              <span className="text-xl font-bold text-gray-900 whitespace-nowrap">
                 Agro<span className="text-green-600">Klinik</span>
               </span>
             )}
@@ -48,11 +54,11 @@ export function Sidebar() {
         {/* User Card */}
         <div className="p-4 border-b border-green-100">
           {isAuthenticated ? (
-            <Link href="/hesabim" className={`flex items-center gap-3 p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
+            <Link href="/hesabim" className={`flex items-center gap-3 p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors ${!isExpanded ? 'justify-center' : ''}`}>
               <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-xl flex-shrink-0">
                 {user?.avatar}
               </div>
-              {!isCollapsed && (
+              {isExpanded && (
                 <div className="overflow-hidden">
                   <p className="font-semibold text-gray-900 truncate">
                     {user?.firstName} {user?.lastName}
@@ -62,11 +68,11 @@ export function Sidebar() {
               )}
             </Link>
           ) : (
-            <Link href="/giris" className={`flex items-center gap-3 p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors ${isCollapsed ? 'justify-center' : ''}`}>
+            <Link href="/giris" className={`flex items-center gap-3 p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-colors ${!isExpanded ? 'justify-center' : ''}`}>
               <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center text-xl flex-shrink-0">
                 👤
               </div>
-              {!isCollapsed && (
+              {isExpanded && (
                 <div className="overflow-hidden">
                   <p className="font-semibold text-gray-900 truncate">Giriş Yap</p>
                   <p className="text-sm text-gray-500 truncate">Hesabınıza erişin</p>
@@ -85,16 +91,14 @@ export function Sidebar() {
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.public)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all whitespace-nowrap ${
                   isActive
                     ? 'bg-green-100 text-green-700'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-green-600'
-                } ${isCollapsed ? 'justify-center' : ''}`}
+                } ${!isExpanded ? 'justify-center' : ''}`}
               >
                 <span className="text-xl">{item.icon}</span>
-                {!isCollapsed && (
-                  <span className="font-medium">{item.label}</span>
-                )}
+                {isExpanded && <span className="font-medium">{item.label}</span>}
               </Link>
             );
           })}
@@ -102,28 +106,21 @@ export function Sidebar() {
 
         {/* Bottom Actions */}
         <div className="p-4 border-t border-green-100 space-y-2">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50 w-full transition-colors ${isCollapsed ? 'justify-center' : ''}`}
-          >
-            <span className="text-xl">{isCollapsed ? '→' : '←'}</span>
-            {!isCollapsed && <span className="font-medium">Daralt</span>}
-          </button>
           {isAuthenticated ? (
             <button
               onClick={logout}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 w-full transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 w-full transition-colors ${!isExpanded ? 'justify-center' : ''}`}
             >
               <span className="text-xl">🚪</span>
-              {!isCollapsed && <span className="font-medium">Çıkış Yap</span>}
+              {isExpanded && <span className="font-medium whitespace-nowrap">Çıkış Yap</span>}
             </button>
           ) : (
             <Link
               href="/giris"
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-green-600 hover:bg-green-50 w-full transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-green-600 hover:bg-green-50 w-full transition-colors ${!isExpanded ? 'justify-center' : ''}`}
             >
               <span className="text-xl">🔑</span>
-              {!isCollapsed && <span className="font-medium">Giriş Yap</span>}
+              {isExpanded && <span className="font-medium whitespace-nowrap">Giriş Yap</span>}
             </Link>
           )}
         </div>

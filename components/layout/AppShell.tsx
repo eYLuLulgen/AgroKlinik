@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       <Sidebar />
-      <main className="lg:ml-64 min-h-screen pb-20 lg:pb-0">
+      <main className="lg:mr-20 min-h-screen pb-20 lg:pb-0">
         {children}
       </main>
     </div>
