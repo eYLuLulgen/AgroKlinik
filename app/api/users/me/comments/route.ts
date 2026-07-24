@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { JWT_SECRET } from '@/lib/auth';
 import jwt from 'jsonwebtoken';
-const JWT_SECRET = process.env.JWT_SECRET || 'agroklinik-secret-key-2024';
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
-
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 401 });
     }
@@ -16,19 +15,8 @@ export async function GET(request: NextRequest) {
       include: {
         post: {
           include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                avatar: true,
-              },
-            },
-            analysis: {
-              select: {
-                diagnosis: true,
-              },
-            },
+            user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
+            analysis: { select: { diagnosis: true } },
           },
         },
       },

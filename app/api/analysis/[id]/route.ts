@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { JWT_SECRET } from '@/lib/auth';
 import jwt from 'jsonwebtoken';
-export async function POST(
+import { JWT_SECRET } from '@/lib/auth';
+export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -13,20 +13,17 @@ export async function POST(
     }
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    const body = await request.json();
-    const { status, note } = body;
     const analysis = await prisma.analysis.findFirst({
       where: { id: params.id, userId: decoded.userId },
+      include: { progressLogs: { orderBy: { createdAt: 'desc' } } },
     });
     if (!analysis) {
       return NextResponse.json({ error: 'Analiz bulunamadı' }, { status: 404 });
     }
-    const progressLog = await prisma.progressLog.create({
-      data: { analysisId: params.id, status, note },
+    return NextResponse.json({
+      analysis: { ...analysis, solutions: JSON.parse(analysis.solutions) },
     });
-    await prisma.analysis.update({ where: { id: params.id }, data: { status } });
-    return NextResponse.json({ progressLog });
   } catch (error) {
-    return NextResponse.json({ error: 'Kayıt sırasında hata oluştu' }, { status: 500 });
+    return NextResponse.json({ error: 'Veri alınırken hata oluştu' }, { status: 500 });
   }
 }

@@ -1,18 +1,12 @@
 import { create } from 'zustand';
+import { useAuthStore } from './authStore';
 
 interface SimilarCase {
   id: string;
-  userId: string;
   userName: string;
-  userAvatar: string;
+  userAvatar: string | null;
   diagnosis: string;
-  status: 'çözüldü' | 'devam ediyor' | 'beklemede';
-}
-
-interface ProgressLog {
   status: string;
-  note: string;
-  date: Date;
 }
 
 interface AnalysisResult {
@@ -22,77 +16,71 @@ interface AnalysisResult {
   solutions: string[];
   similarCases: SimilarCase[];
   isPublic: boolean;
-  createdAt: Date;
-  progressLog?: ProgressLog[];
+  status: string;
+  createdAt: string;
 }
 
 interface AnalysisState {
   currentAnalysis: AnalysisResult | null;
   history: AnalysisResult[];
   isAnalyzing: boolean;
+  error: string;
   analyzeImage: (file: File, isPublic: boolean) => Promise<void>;
+  fetchHistory: () => Promise<void>;
   clearCurrentAnalysis: () => void;
-  updatePlantStatus: (id: string, status: string, note: string) => void;
 }
 
-export const useAnalysisStore = create<AnalysisState>((set, get) => ({
+export const useAnalysisStore = create<AnalysisState>((set) => ({
   currentAnalysis: null,
   history: [],
   isAnalyzing: false,
+  error: '',
 
   analyzeImage: async (file, isPublic) => {
-    set({ isAnalyzing: true });
-    
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    
-    const result: AnalysisResult = {
-      id: Date.now().toString(),
-      imageUrl: URL.createObjectURL(file),
-      diagnosis: 'Yaprak Yanıklığı (Fungal Enfeksiyon)',
-      solutions: [
-        'Enfekte yaprakları hemen budayın ve imha edin',
-        'Bakır bazlı fungisit uygulayın (7-10 gün arayla 3 uygulama)',
-        'Sulama sıklığını azaltın, yaprakları ıslatmaktan kaçının',
-        'Hava sirkülasyonunu artırmak için bitkileri seyreltin',
-      ],
-      similarCases: [
-        {
-          id: '1',
-          userId: 'u1',
-          userName: 'Ahmet Yılmaz',
-          userAvatar: '👨‍🌾',
-          diagnosis: 'Yaprak Yanıklığı',
-          status: 'çözüldü',
-        },
-        {
-          id: '2',
-          userId: 'u2',
-          userName: 'Fatma Demir',
-          userAvatar: '🌾',
-          diagnosis: 'Yaprak Yanıklığı',
-          status: 'devam ediyor',
-        },
-      ],
-      isPublic,
-      createdAt: new Date(),
-    };
+    set({ isAnalyzing: true, error: '' });
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) {
+        set({ isAnalyzing: false, error: 'Giriş yapmanız gerekiyor' });
+        return;
+      }
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('isPublic', String(isPublic));
+      const res = await fetch('/api/analysis', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        set({ isAnalyzing: false, error: data.error || 'Analiz başarısız oldu' });
+        return;
+      }
+      set({
+        currentAnalysis: data.analysis,
+        isAnalyzing: false,
+      });
+    } catch {
+      set({ isAnalyzing: false, error: 'Bir bağlantı hatası oluştu' });
+    }
+  },
 
-    set(state => ({
-      currentAnalysis: result,
-      history: [result, ...state.history],
-      isAnalyzing: false,
-    }));
+  fetchHistory: async () => {
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) return;
+      const res = await fetch('/api/analysis', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        set({ history: data.analyses || [] });
+      }
+    } catch {
+      // sessizce geç
+    }
   },
 
   clearCurrentAnalysis: () => set({ currentAnalysis: null }),
-
-  updatePlantStatus: (id, status, note) => {
-    set(state => ({
-      history: state.history.map(item =>
-        item.id === id
-          ? { ...item, progressLog: [...(item.progressLog || []), { status, note, date: new Date() }] }
-          : item
-      ),
-    }));
-  },
 }));
