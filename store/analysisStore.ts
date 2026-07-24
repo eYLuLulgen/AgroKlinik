@@ -14,6 +14,8 @@ interface AnalysisResult {
   imageUrl: string;
   diagnosis: string;
   solutions: string[];
+  severity?: string;
+  prevention?: string[];
   similarCases: SimilarCase[];
   isPublic: boolean;
   status: string;
@@ -25,7 +27,7 @@ interface AnalysisState {
   history: AnalysisResult[];
   isAnalyzing: boolean;
   error: string;
-  analyzeImage: (file: File, isPublic: boolean) => Promise<void>;
+  analyzeImage: (file: File, isPublic: boolean, plantName?: string) => Promise<void>;
   fetchHistory: () => Promise<void>;
   clearCurrentAnalysis: () => void;
 }
@@ -36,7 +38,7 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
   isAnalyzing: false,
   error: '',
 
-  analyzeImage: async (file, isPublic) => {
+  analyzeImage: async (file, isPublic, plantName) => {
     set({ isAnalyzing: true, error: '' });
     try {
       const token = useAuthStore.getState().token;
@@ -47,6 +49,8 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
       const formData = new FormData();
       formData.append('image', file);
       formData.append('isPublic', String(isPublic));
+      if (plantName) formData.append('plantName', plantName);
+
       const res = await fetch('/api/analysis', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -58,7 +62,10 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
         return;
       }
       set({
-        currentAnalysis: data.analysis,
+        currentAnalysis: {
+          ...data.analysis,
+          similarCases: data.similarCases || [],
+        },
         isAnalyzing: false,
       });
     } catch {

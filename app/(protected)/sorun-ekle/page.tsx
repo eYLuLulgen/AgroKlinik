@@ -3,8 +3,15 @@
 import { useState, useCallback } from 'react';
 import { useAnalysisStore } from '@/store/analysisStore';
 
+const severityColors: Record<string, string> = {
+  'düşük': 'bg-green-100 text-green-700 border-green-200',
+  'orta': 'bg-amber-100 text-amber-700 border-amber-200',
+  'yüksek': 'bg-red-100 text-red-700 border-red-200',
+};
+
 export default function SorunEklePage() {
   const [isPublic, setIsPublic] = useState(true);
+  const [plantName, setPlantName] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
@@ -31,7 +38,7 @@ export default function SorunEklePage() {
 
   const handleAnalyze = async () => {
     if (file) {
-      await analyzeImage(file, isPublic);
+      await analyzeImage(file, isPublic, plantName || undefined);
     }
   };
 
@@ -51,6 +58,20 @@ export default function SorunEklePage() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Upload Section */}
           <div className="space-y-6">
+            {/* Plant Name Input */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bitki Adı (opsiyonel)
+              </label>
+              <input
+                type="text"
+                value={plantName}
+                onChange={(e) => setPlantName(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all outline-none"
+                placeholder="örn: Domates, Gül, Buğday..."
+              />
+            </div>
+
             {/* Dropzone */}
             <div
               onDrop={handleDrop}
@@ -66,7 +87,7 @@ export default function SorunEklePage() {
             >
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="file-upload"
@@ -86,7 +107,7 @@ export default function SorunEklePage() {
                       <p className="text-lg font-medium text-gray-700">
                         {isDragActive ? 'Bırakın!' : 'Fotoğraf yükleyin'}
                       </p>
-                      <p className="text-sm text-gray-500 mt-1">Sürükleyip bırakın veya tıklayarak seçin</p>
+                      <p className="text-sm text-gray-500 mt-1">JPEG, PNG, WebP veya GIF (maks 10MB)</p>
                     </div>
                   </div>
                 )}
@@ -149,38 +170,64 @@ export default function SorunEklePage() {
 
             {currentAnalysis && !isAnalyzing && (
               <>
-                {/* Diagnosis */}
+                {/* Diagnosis + Severity */}
                 <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl border border-red-200 p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-2xl">🦠</div>
-                    <div>
+                  <div className="flex items-start gap-4 mb-3">
+                    <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">🦠</div>
+                    <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 mb-1">Tespit Edilen Sorun</h3>
                       <p className="text-red-700 font-medium text-lg">{currentAnalysis.diagnosis}</p>
                     </div>
                   </div>
+                  {currentAnalysis.severity && (
+                    <div className="flex items-center gap-2 mt-3">
+                      <span className="text-sm text-gray-600">Şiddet:</span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium border ${severityColors[currentAnalysis.severity] || severityColors['orta']}`}>
+                        {currentAnalysis.severity}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Solutions */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-2xl">💊</div>
+                    <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">💊</div>
                     <h3 className="font-semibold text-gray-900">Önerilen Çözümler</h3>
                   </div>
                   <ol className="space-y-3">
-                    {(currentAnalysis.solutions || []).map((solution: string, index: number) => (
+                    {(currentAnalysis.solutions || []).map((solution, index) => (
                       <li key={index} className="flex items-start gap-3">
-                        <span className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center text-sm font-semibold text-green-700">{index + 1}</span>
+                        <span className="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center text-sm font-semibold text-green-700 flex-shrink-0">{index + 1}</span>
                         <span className="text-gray-700">{solution}</span>
                       </li>
                     ))}
                   </ol>
                 </div>
 
-                {/* Similar Cases */}
+                {/* Prevention */}
+                {(currentAnalysis.prevention || []).length > 0 && (
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl border border-blue-200 p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">🛡️</div>
+                      <h3 className="font-semibold text-gray-900">Önleme Önerileri</h3>
+                    </div>
+                    <ul className="space-y-2">
+                      {(currentAnalysis.prevention || []).map((tip, index) => (
+                        <li key={index} className="flex items-start gap-3">
+                          <span className="text-blue-500 flex-shrink-0">•</span>
+                          <span className="text-gray-700">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Similar Cases */
                 {(currentAnalysis.similarCases || []).length > 0 && (
                   <div className="bg-white rounded-2xl border border-gray-200 p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl">👥</div>
+                      <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">👥</div>
                       <h3 className="font-semibold text-gray-900">Benzer Sorunu Yaşayanlar</h3>
                     </div>
                     <div className="space-y-3">
