@@ -1,12 +1,16 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL || 'file:./dev.db',
+});
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
   console.log('Veritabanı seed işlemi başlıyor...\n');
 
-  // Önce mevcut kullanıcıları temizle (test verisi için)
+  // Önce mevcut verileri temizle
   await prisma.progressLog.deleteMany();
   await prisma.postLike.deleteMany();
   await prisma.comment.deleteMany();
@@ -85,12 +89,12 @@ async function main() {
 
   console.log('✅ Seed tamamlandı!\n');
   console.log('Test hesapları:');
-  console.log('  ┌────────────┬──────────┬───────────┐');
-  console.log('  │ Kullanıcı  │ Şifre    │ Meslek    │');
-  console.log('  ├────────────┼──────────┼───────────┤');
-  console.log('  │ demo       │ demo123  │ Çiftçi    │');
-  console.log('  │ uzman      │ uzman123 │ Z.Mühendis│');
-  console.log('  └────────────┴──────────┴───────────┘');
+  console.log('  ┌────────────┬──────────┬─────────────┐');
+  console.log('  │ Kullanıcı  │ Şifre    │ Meslek      │');
+  console.log('  ├────────────┼──────────┼─────────────┤');
+  console.log('  │ demo       │ demo123  │ Çiftçi      │');
+  console.log('  │ uzman      │ uzman123 │ Z.Mühendis  │');
+  console.log('  └────────────┴──────────┴─────────────┘');
 }
 
 main()
