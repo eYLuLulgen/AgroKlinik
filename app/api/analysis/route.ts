@@ -4,7 +4,6 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '@/lib/auth';
 import { saveImage } from '@/lib/storage';
 import { analyzePlantImage } from '@/lib/ai-analysis';
-import { sanitizeInput } from '@/lib/validation';
 
 // Analiz Oluştur
 export async function POST(request: NextRequest) {
@@ -19,7 +18,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const image = formData.get('image') as File;
     const isPublic = formData.get('isPublic') === 'true';
-    const plantName = sanitizeInput((formData.get('plantName') as string) || 'Bilinmeyen Bitki');
+    const plantName = (formData.get('plantName') as string) || 'Bilinmeyen Bitki';
 
     if (!image) {
       return NextResponse.json({ error: 'Görsel zorunludur' }, { status: 400 });
@@ -40,7 +39,11 @@ export async function POST(request: NextRequest) {
         userId: decoded.userId,
         imageUrl: uploadResult.url,
         diagnosis: aiResult.diagnosis,
-        solutions: JSON.stringify(aiResult.solutions),
+        solutions: JSON.stringify({
+          solutions: aiResult.solutions,
+          prevention: aiResult.prevention,
+          severity: aiResult.severity,
+        }),
         isPublic,
         status: 'beklemede',
       },
@@ -81,12 +84,14 @@ export async function POST(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
+    const solutionsData = JSON.parse(analysis.solutions);
+
     return NextResponse.json({
       analysis: {
         ...analysis,
-        solutions: JSON.parse(analysis.solutions),
-        severity: aiResult.severity,
-        prevention: aiResult.prevention,
+        solutions: solutionsData.solutions,
+        prevention: solutionsData.prevention,
+        severity: solutionsData.severity,
       },
       similarCases: similarCases.map(c => ({
         id: c.id,
@@ -112,29 +117,26 @@ export async function GET(request: NextRequest) {
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
-
-    const [analyses, total] = await Promise.all([
-      prisma.analysis.findMany({
-        where: { userId: decoded.userId },
-        include: {
-          progressLogs: { orderBy: { createdAt: 'desc' } },
+    const analyses = await prisma.analysis.findMany({
+      where: { userId: decoded.userId },
+      include: {
+        progressLogs: {
+          orderBy: { createdAt: 'desc' },
         },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.analysis.count({ where: { userId: decoded.userId } }),
-    ]);
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return NextResponse.json({
-      analyses: analyses.map(a => ({
-        ...a,
-        solutions: JSON.parse(a.solutions),
-      })),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      analyses: analyses.map(a => {
+        const solutionsData = JSON.parse(a.solutions);
+        return {
+          ...a,
+          solutions: solutionsData.solutions || [],
+          prevention: solutionsData.prevention || [],
+          severity: solutionsData.severity || 'orta',
+        };
+      }),
     });
   } catch (error) {
     return NextResponse.json({ error: 'Veriler alınırken hata oluştu' }, { status: 500 });

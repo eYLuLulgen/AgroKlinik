@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { JWT_SECRET } from '@/lib/auth';
 import jwt from 'jsonwebtoken';
+import { validateCommentContent, sanitizeInput } from '@/lib/validation';
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -14,12 +16,25 @@ export async function POST(
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     const body = await request.json();
-    const { content } = body;
-    if (!content || content.trim() === '') {
-      return NextResponse.json({ error: 'Yorum içeriği zorunludur' }, { status: 400 });
+    const content = sanitizeInput(body.content || '');
+
+    const contentCheck = validateCommentContent(content);
+    if (!contentCheck.valid) {
+      return NextResponse.json({ error: contentCheck.message }, { status: 400 });
     }
+
+    // Post var mı kontrol et
+    const post = await prisma.post.findUnique({ where: { id: params.id } });
+    if (!post) {
+      return NextResponse.json({ error: 'Paylaşım bulunamadı' }, { status: 404 });
+    }
+
     const comment = await prisma.comment.create({
-      data: { userId: decoded.userId, postId: params.id, content },
+      data: {
+        userId: decoded.userId,
+        postId: params.id,
+        content,
+      },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, avatar: true } },
       },
@@ -29,6 +44,7 @@ export async function POST(
     return NextResponse.json({ error: 'Yorum eklenirken hata oluştu' }, { status: 500 });
   }
 }
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

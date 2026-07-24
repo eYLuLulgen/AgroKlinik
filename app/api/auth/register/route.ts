@@ -19,63 +19,91 @@ const professionEmojis: Record<string, string> = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const username = sanitizeInput(body.username || '');
-    const email = sanitizeInput((body.email || '').toLowerCase());
-    const password = body.password || '';
-    const firstName = sanitizeInput(body.firstName || '');
-    const lastName = sanitizeInput(body.lastName || '');
-    const profession = sanitizeInput(body.profession || '');
-    const location = sanitizeInput(body.location || '');
-    const avatar = body.avatar || null;
+    const { username, email, password, firstName, lastName, profession, location, avatar } = body;
 
-    // Validasyon
-    const usernameCheck = validateUsername(username);
-    if (!usernameCheck.valid) return NextResponse.json({ error: usernameCheck.message }, { status: 400 });
+    // Doğrulama
+    const usernameCheck = validateUsername(sanitizeInput(username || ''));
+    if (!usernameCheck.valid) {
+      return NextResponse.json({ error: usernameCheck.message }, { status: 400 });
+    }
 
-    const emailCheck = validateEmail(email);
-    if (!emailCheck.valid) return NextResponse.json({ error: emailCheck.message }, { status: 400 });
+    const emailCheck = validateEmail(sanitizeInput(email || ''));
+    if (!emailCheck.valid) {
+      return NextResponse.json({ error: emailCheck.message }, { status: 400 });
+    }
 
-    const passwordCheck = validatePassword(password);
-    if (!passwordCheck.valid) return NextResponse.json({ error: passwordCheck.message }, { status: 400 });
+    const passwordCheck = validatePassword(password || '');
+    if (!passwordCheck.valid) {
+      return NextResponse.json({ error: passwordCheck.message }, { status: 400 });
+    }
 
-    const firstNameCheck = validateName(firstName, 'Ad');
-    if (!firstNameCheck.valid) return NextResponse.json({ error: firstNameCheck.message }, { status: 400 });
+    const firstNameCheck = validateName(sanitizeInput(firstName || ''), 'Ad');
+    if (!firstNameCheck.valid) {
+      return NextResponse.json({ error: firstNameCheck.message }, { status: 400 });
+    }
 
-    const lastNameCheck = validateName(lastName, 'Soyad');
-    if (!lastNameCheck.valid) return NextResponse.json({ error: lastNameCheck.message }, { status: 400 });
+    const lastNameCheck = validateName(sanitizeInput(lastName || ''), 'Soyad');
+    if (!lastNameCheck.valid) {
+      return NextResponse.json({ error: lastNameCheck.message }, { status: 400 });
+    }
 
-    if (!profession) return NextResponse.json({ error: 'Meslek zorunludur' }, { status: 400 });
-    if (!location) return NextResponse.json({ error: 'Konum zorunludur' }, { status: 400 });
+    if (!profession || !location) {
+      return NextResponse.json({ error: 'Meslek ve konum zorunludur' }, { status: 400 });
+    }
 
     // Kullanıcı var mı kontrol et
     const existingUser = await prisma.user.findFirst({
-      where: { OR: [{ username }, { email }] },
+      where: {
+        OR: [
+          { username: usernameCheck.message ? username : username },
+          { email }
+        ]
+      }
     });
     if (existingUser) {
       return NextResponse.json(
-        { error: existingUser.username === username ? 'Bu kullanıcı adı kullanılıyor' : 'Bu email kullanılıyor' },
+        { error: 'Bu kullanıcı adı veya email zaten kullanılıyor' },
         { status: 400 }
       );
     }
 
     // Şifreyi hashle
-    const hashedPassword = await bcrypt.hash(password, 12);
-
+    const hashedPassword = await bcrypt.hash(password, 10);
     // Avatar yoksa mesleğe göre emoji ata
     const userAvatar = avatar || professionEmojis[profession] || '🌱';
 
     // Kullanıcı oluştur
     const user = await prisma.user.create({
-      data: { username, email, password: hashedPassword, firstName, lastName, profession, location, avatar: userAvatar },
+      data: {
+        username,
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        profession,
+        location,
+        avatar: userAvatar,
+      },
     });
 
     // Token oluştur
-    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign(
+      { userId: user.id, username: user.username },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
+    // Şifreyi response'dan çıkar
     const { password: _, ...userWithoutPassword } = user;
-    return NextResponse.json({ user: userWithoutPassword, token });
+    return NextResponse.json({
+      user: userWithoutPassword,
+      token,
+    });
   } catch (error) {
     console.error('Register error:', error);
-    return NextResponse.json({ error: 'Kayıt sırasında bir hata oluştu' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Kayıt sırasında bir hata oluştu' },
+      { status: 500 }
+    );
   }
 }
