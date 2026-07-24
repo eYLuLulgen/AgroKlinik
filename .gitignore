@@ -28,6 +28,10 @@
 .env*
 !.env.example
 
+# uploaded images (kullanıcı görselleri)
+/public/uploads/*
+!/public/uploads/.gitkeep
+
 # vercel
 .vercel
 
